@@ -1,0 +1,9 @@
+{
+    "STTS751.STTS751_RESOLUTION.BIT9|block": "9 位",
+    "STTS751.STTS751_RESOLUTION.BIT10|block": "10 位",
+    "STTS751.STTS751_RESOLUTION.BIT11|block": "11 位",
+    "STTS751.STTS751_RESOLUTION.BIT12|block": "12 位",
+    "STTS751.oneshot_mode|block": "oneshot 模式 %oneshot",
+    "STTS751.resolution|block": "分辨率 %res",
+    "STTS751.temperature|block": "温度 %u"
+}
