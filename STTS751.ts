@@ -1,113 +1,45 @@
-/**
-* ST STTS751 temperature Sensor I2C extension for makecode.
-* From microbit/micropython Chinese community.
-* https://github.com/makecode-extensions
-*/
+// Distributed with a free-will license.
+// Use it any way you want, profit or free, provided it fits in the licenses of its associated works.
+// SHT30
+// This code is designed to work with the SHT30_I2CS I2C Mini Module available from ControlEverything.com.
+// https://www.controleverything.com/content/Humidity?sku=SHT30_I2CS#tabs-0-product_tabset-2
 
-/**
- * ST STTS751 temperature Sensor I2C extension
- */
-//% weight=100 color=#4090e0 icon="\uf2c7" block="STTS751" 
-namespace STTS751 {
-    export enum STTS751_T_UNIT {
-        //% block="C"
-        C = 0,
-        //% block="F"
-        F = 1
-    }
+import com.pi4j.io.i2c.I2CBus;
+import com.pi4j.io.i2c.I2CDevice;
+import com.pi4j.io.i2c.I2CFactory;
+import java.io.IOException;
 
-    export enum STTS751_RESOLUTION {
-        //% block="9 bit"
-        BIT9 = 9,
-        //% block="10 bit"
-        BIT10 = 10,
-        //% block="11 bit"
-        BIT11 = 11,
-        //% block="12 bit"
-        BIT12 = 12
-    }
+public class SHT30
+{
+	public static void main(String args[]) throws Exception
+	{
+		// Create I2C bus
+		I2CBus Bus = I2CFactory.getInstance(I2CBus.BUS_1);
+		// Get I2C device, SHT30 I2C address is 0x44(68)
+		I2CDevice device = Bus.getDevice(0x44);
 
-    const _STTS751_RESOLUTION = [8, 0, 4, 12]
-    const STTS751_I2C_ADDR = 0x4A
-    const STTS751_REG_STATUS = 1
-    const STTS751_REG_CONFIG = 3
-    const STTS751_REG_CONRAT = 4
-    const STTS751_REG_TEMPVH = 0
-    const STTS751_REG_TEMPVL = 2
-    const STTS751_REG_ONESHOT = 15
+		// Send measurement command
+		// High repeatability measurement
+		byte[] config = new byte[2];
+		config[0] = 0x2C;
+		config[1] = 0x06;
+		device.write(config, 0, 2);
+		Thread.sleep(500);
 
-    let _oneshot = false
-    oneshot_mode(false)
+		// Read 6 bytes of data
+		// Temp msb, Temp lsb, Temp CRC, Humididty msb, Humidity lsb, Humidity CRC
+		byte[] data = new byte[6];
+		device.read(data, 0, 6);
 
-    // set dat to reg
-    function setreg(reg: number, dat: number): void {
-        let tb = pins.createBuffer(2)
-        tb[0] = reg
-        tb[1] = dat
-        pins.i2cWriteBuffer(STTS751_I2C_ADDR, tb)
-    }
-
-    // read a Int8LE from reg
-    function getInt8LE(reg: number): number {
-        pins.i2cWriteNumber(STTS751_I2C_ADDR, reg, NumberFormat.UInt8BE);
-        return pins.i2cReadNumber(STTS751_I2C_ADDR, NumberFormat.Int8LE);
-    }
-
-    // read a UInt8LE from reg
-    function getUInt8LE(reg: number): number {
-        pins.i2cWriteNumber(STTS751_I2C_ADDR, reg, NumberFormat.UInt8BE);
-        return pins.i2cReadNumber(STTS751_I2C_ADDR, NumberFormat.UInt8LE);
-    }
-
-    // set a mask dat to reg
-    function setreg_mask(reg: number, dat: number, mask: number): void {
-        setreg(reg, (getUInt8LE(reg) & mask) | dat)
-    }
-
-    // turn number to int16
-    function int16(n: number): number {
-        return (n > 0x7fff) ? n - 65536 : n
-    }
-
-    // oneshot mode handle
-    function ONE_SHOT(): void {
-        if (_oneshot) {
-            setreg(STTS751_REG_ONESHOT, 1)
-            while (true) {
-                if (getUInt8LE(STTS751_REG_STATUS) < 0x80) return
-            }
-        }
-    }
-
-    /**
-     * set oneshot mode to reduce power consumption
-     */
-    //% block="oneshot mode %oneshot"
-    export function oneshot_mode(oneshot: boolean = false) {
-        _oneshot = oneshot
-        let t = (oneshot) ? 0x40 : 0x00
-        setreg_mask(STTS751_REG_CONFIG, t, 0xBF)
-    }
-
-    /**
-     * set temperature sensor resolution
-     */
-    //% block="resolution %res"
-    //% res.defl=STTS751.STTS751_RESOLUTION.BIT12
-    export function resolution(res: STTS751.STTS751_RESOLUTION = STTS751.STTS751_RESOLUTION.BIT12) {
-        if ((res < 9) || (res > 12)) return
-        setreg_mask(STTS751_REG_CONFIG, _STTS751_RESOLUTION[res - 9], 0xF3)
-    }
-
-    /**
-     * get temperature
-     */
-    //% block="temperature %u"
-    export function temperature(u: STTS751.STTS751_T_UNIT = STTS751.STTS751_T_UNIT.C): number {
-        ONE_SHOT()
-        let T = int16(getUInt8LE(STTS751_REG_TEMPVH) * 256 + getUInt8LE(STTS751_REG_TEMPVL)) / 256
-        if (u == STTS751.STTS751_T_UNIT.F) T = 32 + T * 9 / 5
-        return T
-    }
-
+		// Convert the data
+		int temp = ((data[0] & 0xFF) * 256) + (data[1] & 0xFF);
+		double cTemp = -45 + (175 * temp / 65535.0);
+		double fTemp = -49 + (315 * temp / 65535.0);
+		double humidity = 100 * (((data[3] & 0xFF) * 256) + (data[4]  & 0xFF)) / 65535.0;
+		
+		// Output data to screen
+		System.out.printf("Relative Humidity : %.2f %%RH %n", humidity);
+		System.out.printf("Temperature in Celsius : %.2f C %n", cTemp);
+		System.out.printf("Temperature in Fahrenheit : %.2f F %n", fTemp);
+	}
 }
