@@ -1,14 +1,14 @@
 {
-    "name": "STTS751",
+    "name": "STH30",
     "version": "1.0.0",
-    "description": "ST STTS751 temperature Sensor I2C extension for makecode.",
+    "description": "STH30 temperature Sensor I2C extension for makecode.",
     "license": "MIT",
     "dependencies": {
         "core": "*"
     },
     "files": [
         "README.md",
-        "_locales/zh/STTS751-strings.json",
+        "_locales/zh/STH30-strings.json",
         "STTS751.ts"
     ],
     "testFiles": [
